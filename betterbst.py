@@ -50,18 +50,8 @@ class BetterBST(BinarySearchTree[K, I]):
             Best Case Complexity: TODO
             Worst Case Complexity: TODO
         """
-        # Create auxiliary arrays to store keys and items
-        n = len(elements)
-        keys = ArrayR(n)
-
-        for i in range(n):
-            keys[i] = elements[i][0]
-
-        sort_keys = mergesort.mergesort(keys)
-
-        for i in range(n):
-            elements[i] = (sort_keys[i], elements[i][1])
-        return elements
+        sorted_keys = mergesort.mergesort(elements)
+        return sorted_keys
 
     def __build_balanced_tree(self, elements: List[Tuple[K, I]]) -> None:
         """
@@ -88,12 +78,12 @@ class BetterBST(BinarySearchTree[K, I]):
             where n is the number of elements in the list.
         """
         def build_tree(start: int, end: int) -> None:
-            if start > end:
-                return
-            mid = (start + end) // 2
-            key, item = elements[mid]
-            self[key] = item  # __setitem__ method from bst.py to insert elements
-            build_tree(start, mid - 1)
-            build_tree(mid + 1, end)
+                if start > end:
+                    return
+                mid = (start + end) // 2
+                key, item = elements[mid]
+                self[key] = item  # __setitem__ method from bst.py to insert elements
+                build_tree(start, mid - 1)
+                build_tree(mid + 1, end)
 
         build_tree(0, len(elements) - 1)

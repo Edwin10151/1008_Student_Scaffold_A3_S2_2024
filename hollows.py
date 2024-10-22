@@ -1,4 +1,9 @@
 from __future__ import annotations
+
+from betterbst import BetterBST
+from data_structures.bst import BinarySearchTree
+from data_structures.hash_table import LinearProbeTable
+from data_structures.heap import MaxHeap
 """
 Ensure you have read the introduction and task 1 and understand what 
 is prohibited in this task.
@@ -75,16 +80,17 @@ class SpookyHollow(Hollow):
         Complexity:
             (This is the actual complexity of your code, 
             remember to define all variables used.)
-            Best Case Complexity: TODO
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(n log n), Inserting elements into the BinarySearchTree: O(n log n)
+            Worst Case Complexity: O(n log n), Inserting elements into the BinarySearchTree: O(n log n)
 
         Complexity requirements for full marks:
             Best Case Complexity: O(n log n)
             Worst Case Complexity: O(n log n)
             Where n is the number of treasures in the hollow
         """
-        raise NotImplementedError
-
+        elements = [(treasure.value / treasure.weight, treasure) for treasure in self.treasures]
+        self.treasure_bst = BetterBST(elements)
+        
     def get_optimal_treasure(self, backpack_capacity: int) -> Treasure | None:
         """
         Removes the ideal treasure from the hollow 
@@ -104,15 +110,33 @@ class SpookyHollow(Hollow):
         Complexity:
             (This is the actual complexity of your code, 
             remember to define all variables used.)
-            Best Case Complexity: TODO
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(log (n)), Finding the maximum element: O(log n), Removing the element: O(log n)
+            Worst Case Complexity: O(log n) in the best case and O(n) in the worst case (if we need to traverse the entire tree, search method even in balanced tree also has O(n) complexity)
 
         Complexity requirements for full marks:
             Best Case Complexity: O(log(n))
             Worst Case Complexity: O(n)
             n is the number of treasures in the hollow 
         """
-        raise NotImplementedError
+        optimal_treasure = None
+
+        # Find the maximum ratio that is less than or equal to the backpack capacity
+        current = self.treasure_bst.root
+        while current:
+            if current.item.weight <= backpack_capacity:
+                optimal_treasure = current.item
+                if current.right:
+                    current = current.right
+                else:
+                    break
+            else:
+                current = current.left
+
+        if optimal_treasure:
+            del self.treasure_bst[optimal_treasure.value / optimal_treasure.weight]
+            self.treasures = [t for t in self.treasures if t != optimal_treasure]
+
+        return optimal_treasure
 
     def __str__(self) -> str:
         return Tiles.SPOOKY_HOLLOW.value
@@ -145,7 +169,12 @@ class MysticalHollow(Hollow):
             Worst Case Complexity: O(n)
             Where n is the number of treasures in the hollow
         """
-        raise NotImplementedError
+        # self.treasure_heap = MaxHeap(len(self.treasures))
+        # for treasure in self.treasures:
+        #     ratio = treasure.value / treasure.weight
+        #     self.treasure_heap.add((ratio, treasure))
+        elements = [(treasure.value / treasure.weight, treasure) for treasure in self.treasures]
+        self.treasure_heap = MaxHeap.heapify(elements)
 
     def get_optimal_treasure(self, backpack_capacity: int) -> Treasure | None:
         """
@@ -166,7 +195,10 @@ class MysticalHollow(Hollow):
         Complexity:
             (This is the actual complexity of your code, 
             remember to define all variables used.)
-            Best Case Complexity: TODO
+            Best Case Complexity: Uses the MaxHeap to retrieve the treasure with the highest value/weight ratio that can be carried.
+                                If no viable treasure is found, the remaining elements are restored to the heap using heapify.
+                                Updates the treasures list to remove the selected treasure.
+                                Complexity: O(log n) for the best case and O(n log n) for the worst case.
             Worst Case Complexity: TODO
 
         Complexity requirements for full marks:
@@ -174,7 +206,24 @@ class MysticalHollow(Hollow):
             Worst Case Complexity: O(n log n)
             Where n is the number of treasures in the hollow
         """
-        raise NotImplementedError
+        optimal_treasure = None
+        remaining_elements = []
+
+        while len(self.treasure_heap) > 0:
+            ratio, treasure = self.treasure_heap.get_max()
+            if treasure.weight <= backpack_capacity:
+                optimal_treasure = treasure
+                break
+            else:
+                remaining_elements.append((ratio, treasure))
+
+        # Restore the heap using heapify
+        if remaining_elements:
+            self.treasure_heap = MaxHeap.heapify(remaining_elements)
+
+        if optimal_treasure:
+            self.treasures = [t for t in self.treasures if t != optimal_treasure]
+        return optimal_treasure
 
     def __str__(self) -> str:
         return Tiles.MYSTICAL_HOLLOW.value

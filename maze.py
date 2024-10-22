@@ -200,7 +200,16 @@ class Maze:
             Best Case Complexity: TODO
             Worst Case Complexity: TODO
         """
-        raise NotImplementedError
+        # rows = len(self.grid)
+        # cols = len(self.grid[0])
+        # if 0 <= position.row < rows and 0 <= position.col < cols:
+        #     cell = self.grid[position.row][position.col]
+        #     return cell.tile != '#' and not cell.visited
+        # return False
+        if 0 <= position.row < self.rows and 0 <= position.col < self.cols:
+            cell = self.grid[position.row][position.col]
+            return cell.tile != Tiles.WALL.value and not cell.visited
+        return False
 
     def get_available_positions(self, current_position: Position) -> List[Position]:
         """
@@ -216,9 +225,14 @@ class Maze:
             Best Case Complexity: TODO
             Worst Case Complexity: TODO
         """
+        available_positions = []
+        for direction, (delta_row, delta_col) in Maze.directions.items():
+            new_position = Position(current_position.row + delta_row, current_position.col + delta_col)
+            if self.is_valid_position(new_position):
+                available_positions.append(new_position)
+        return available_positions
 
-        raise NotImplementedError
-
+        
     def find_way_out(self) -> List[Position] | None:
         """
         Finds a way out of the maze in some cases there may be multiple exits
@@ -236,8 +250,42 @@ class Maze:
             Worst Case Complexity: TODO
         """
         start: Position = self.start_position
-        raise NotImplementedError
+        path = []
+        if self._dfs(start, path):
+            return path
+        return None
 
+    def _dfs(self, current_position: Position, path: List[Position]) -> bool:
+        """
+        Depth-first search to find a path to the exit.
+
+        Args:
+            current_position (Position): The current position.
+            path (List[Position]): The path taken so far.
+
+        Returns:
+            bool: True if a path to the exit is found, False otherwise.
+        """
+        if not self.is_valid_position(current_position):
+            return False
+
+        cell = self.grid[current_position.row][current_position.col]
+        cell.visited = True
+        path.append(current_position)
+
+        if cell.tile == Tiles.EXIT.value:
+            return True
+
+        for next_position in self.get_available_positions(current_position):
+            if self._dfs(next_position, path):
+                return True
+
+        path.pop()
+        # cell.visited = False
+        return False
+
+
+    
     def take_treasures(self, path: List[MazeCell], backpack_capacity: int) -> List[Treasure] | None:
         """
         You must take the treasures in the order they appear in the path selecting treasures
@@ -262,11 +310,37 @@ class Maze:
             Worst Case Complexity: TODO
 
         """
-        raise NotImplementedError
+        treasures_taken = []
+        remaining_capacity = backpack_capacity
 
-    def __repr__(self) -> str:
-        return str(self)
+        for cell in path:
+            if isinstance(cell.tile, Hollow):
+                hollow = cell.tile
+                hollow.restructure_hollow()  # Ensure the hollow is restructured
 
+                optimal_treasure = hollow.get_optimal_treasure(remaining_capacity)
+                if optimal_treasure and optimal_treasure.weight <= remaining_capacity:
+                    treasures_taken.append(optimal_treasure)
+                    remaining_capacity -= optimal_treasure.weight
+
+        return treasures_taken if treasures_taken else None
+        # treasures_taken = []
+        # remaining_capacity = backpack_capacity
+
+        # for cell in path:
+        #     if isinstance(cell.tile, Hollow):
+        #         hollow = cell.tile
+        #         hollow.restructure_hollow()  # Ensure the hollow is restructured
+
+        #         optimal_treasure = hollow.get_optimal_treasure(remaining_capacity)
+        #         if optimal_treasure and optimal_treasure.weight <= remaining_capacity:
+        #             treasures_taken.append(optimal_treasure)
+        #             remaining_capacity -= optimal_treasure.weight
+
+        # return treasures_taken if treasures_taken else None
+
+
+    
     def __str__(self) -> str:
         """
         Returns the grid in a human-readable format.
@@ -302,3 +376,6 @@ def sample2() -> None:
 
 if __name__ == "__main__":
     sample1()
+
+
+
