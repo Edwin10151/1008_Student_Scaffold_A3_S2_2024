@@ -197,15 +197,16 @@ class Maze:
             bool - True if the position is within the maze and not blocked by a wall.
 
         Complexity:
-            Best Case Complexity: TODO
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(1).  
+                Explanation: In the best-case scenario, the provided position is immediately found to be out of bounds. 
+                This situation occurs when either the position.row is less than 0 or greater than or equal to the number of rows in the maze (self.rows), 
+                or when the position.col is less than 0 or greater than or equal to the number of columns (self.cols).
+            Worst Case Complexity: O(1). 
+                Explanation: In the worst-case scenario, the provided position is valid, meaning it lies within the maze boundaries. 
+                This condition allows the function to proceed to check the status of the corresponding cell in the grid. 
+                Since `self.grid` is a list of lists, accessing an element by its indices (i.e., `self.grid[position.row][position.col]`) is a constant-time operation, O(1).
+                This is because lists in Python allow for direct indexing, ensuring that retrieving any element is performed in constant time regardless of the size of the grid.
         """
-        # rows = len(self.grid)
-        # cols = len(self.grid[0])
-        # if 0 <= position.row < rows and 0 <= position.col < cols:
-        #     cell = self.grid[position.row][position.col]
-        #     return cell.tile != '#' and not cell.visited
-        # return False
         if 0 <= position.row < self.rows and 0 <= position.col < self.cols:
             cell = self.grid[position.row][position.col]
             return cell.tile != Tiles.WALL.value and not cell.visited
@@ -222,8 +223,17 @@ class Maze:
             List[Position] - A list of all the new possible you can move to from your current position.
 
         Complexity:
-            Best Case Complexity: TODO
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(1).            
+                Explanation: In the best-case scenario, if the current position has no valid movements (for example, it is surrounded by walls), 
+                the function will quickly evaluate each of the four possible directions but will find that none are valid. 
+                Therefore, it will return an empty list immediately without performing any further checks or operations. 
+                This results in a constant time complexity, O(1).
+            Worst Case Complexity: O(1)
+                Explanation: The function checks four possible directions (up, down, left, and right). Since the number of directions is fixed 
+                and does not vary with the size of the maze, the time taken to evaluate all potential moves remains constant. 
+                The method iterates through `Maze.directions.items()`, which is assumed to be constant, thus making this part of the process O(1). 
+                Each direction check involves calling `is_valid_position`, which also operates in O(1) time as previously analyzed. 
+                Consequently, regardless of the current position or the size of the maze, the overall complexity remains constant, O(1).
         """
         available_positions = []
         for direction, (delta_row, delta_col) in Maze.directions.items():
@@ -246,8 +256,15 @@ class Maze:
             None: Unable to find a path to the exit, simply return None.
 
         Complexity:
-            Best Case Complexity: TODO
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(1).
+                Explanation: The best-case scenario occurs when the starting position is adjacent to an exit, allowing 
+                the method to quickly determine the path with minimal checks, resulting in constant time complexity.
+
+            Worst Case Complexity: O(m * n), where m is the number of rows and n is the number of columns in the maze.
+                Explanation: The worst-case scenario arises from the depth-first search (DFS) traversing the entire maze.
+                The DFS may need to explore all vertices (V) and edges (E) in the maze. For a grid of size m rows by n columns,
+                the total number of cells (vertices) is m * n. Each cell may connect to its neighboring cells, leading to a total of 
+                approximately O(m * n) for the overall complexity as the DFS explores all potential paths until it finds an exit or exhausts all options.
         """
         start: Position = self.start_position
         path = []
@@ -265,27 +282,35 @@ class Maze:
 
         Returns:
             bool: True if a path to the exit is found, False otherwise.
+
+        Complexity:
+            Best Case Complexity: O(1).
+                Explanation: The best-case scenario occurs if the exit is found immediately from the current position,
+                allowing the function to return after only a few checks, resulting in constant time complexity.
+
+            Worst Case Complexity: O(V + E), where V is the total number of cells (vertices) and E is the total number of connections (edges) in the maze.
+                Explanation: In the worst case, the DFS will potentially explore every vertex (V) and edge (E) in the maze.
+                For a grid-like structure, V corresponds to the total number of cells (m * n), and E represents the connections
+                between these cells. Since the DFS can explore every cell and its connections, the complexity is driven by 
+                the total number of cells and their relationships, leading to O(V + E) complexity.
         """
         if not self.is_valid_position(current_position):
             return False
-
+        # Mark the current cell as visited
         cell = self.grid[current_position.row][current_position.col]
         cell.visited = True
         path.append(current_position)
-
         if cell.tile == Tiles.EXIT.value:
             return True
-
+    
         for next_position in self.get_available_positions(current_position):
             if self._dfs(next_position, path):
                 return True
-
+        # Backtrack: unmark the cell and remove it from the path
         path.pop()
         # cell.visited = False
         return False
 
-
-    
     def take_treasures(self, path: List[MazeCell], backpack_capacity: int) -> List[Treasure] | None:
         """
         You must take the treasures in the order they appear in the path selecting treasures
@@ -306,9 +331,19 @@ class Maze:
             None - If there are no treasures to take.
 
         Complexity:
-            Best Case Complexity: TODO
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(n log n), where n is the number of cells in the path.
+                Explanation: In the best-case scenario, the path contains hollows with treasures 
+                that can all be taken within the backpack capacity. Each `get_optimal_treasure` 
+                call operates in O(log n) time, leading to O(n log n) overall complexity for 
+                traversing the path.
 
+            Worst Case Complexity: O(n * m * log n), where n is the number of cells in the path and m is the 
+            number of treasures in the hollows.
+                Explanation: This worst-case scenario occurs when each hollow contains multiple treasures,
+                and none of the treasures meet the weight condition until the last one is checked. 
+                For each hollow (n cells), if the `get_optimal_treasure` method requires checking all 
+                treasures (m) and potentially requires O(log n) time to manage the heap, the total 
+                complexity sums to O(n * m * log n).
         """
         treasures_taken = []
         remaining_capacity = backpack_capacity
@@ -316,7 +351,6 @@ class Maze:
         for cell in path:
             if isinstance(cell.tile, Hollow):
                 hollow = cell.tile
-                hollow.restructure_hollow()  # Ensure the hollow is restructured
 
                 optimal_treasure = hollow.get_optimal_treasure(remaining_capacity)
                 if optimal_treasure and optimal_treasure.weight <= remaining_capacity:
@@ -324,21 +358,6 @@ class Maze:
                     remaining_capacity -= optimal_treasure.weight
 
         return treasures_taken if treasures_taken else None
-        # treasures_taken = []
-        # remaining_capacity = backpack_capacity
-
-        # for cell in path:
-        #     if isinstance(cell.tile, Hollow):
-        #         hollow = cell.tile
-        #         hollow.restructure_hollow()  # Ensure the hollow is restructured
-
-        #         optimal_treasure = hollow.get_optimal_treasure(remaining_capacity)
-        #         if optimal_treasure and optimal_treasure.weight <= remaining_capacity:
-        #             treasures_taken.append(optimal_treasure)
-        #             remaining_capacity -= optimal_treasure.weight
-
-        # return treasures_taken if treasures_taken else None
-
 
     
     def __str__(self) -> str:

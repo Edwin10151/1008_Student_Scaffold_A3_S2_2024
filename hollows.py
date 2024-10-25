@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from betterbst import BetterBST
-from data_structures.bst import BinarySearchTree
+from data_structures.bst import BSTInOrderIterator, BinarySearchTree
 from data_structures.hash_table import LinearProbeTable
 from data_structures.heap import MaxHeap
+from data_structures.linked_queue import LinkedQueue
+from data_structures.linked_stack import LinkedStack
 """
 Ensure you have read the introduction and task 1 and understand what 
 is prohibited in this task.
@@ -80,16 +82,22 @@ class SpookyHollow(Hollow):
         Complexity:
             (This is the actual complexity of your code, 
             remember to define all variables used.)
-            Best Case Complexity: O(n log n), Inserting elements into the BinarySearchTree: O(n log n)
-            Worst Case Complexity: O(n log n), Inserting elements into the BinarySearchTree: O(n log n)
-
+            Best Case Complexity: O(n log n), where n is the number of treasures in the hollow
+                Explanation: The method processes each treasure in the hollow to create a list of tuples containing the negative value-to-weight ratios and corresponding treasures so that we can retrieve the maximum value-to-weight ratio first after we negate it again.
+                This operation takes O(n) time since every treasure must be iterated over. 
+                After forming this list, the elements are inserted into a BetterBST, which, on average, has a logarithmic insertion complexity for each treasure. 
+                Since there are n treasures, the overall complexity for building the BetterBST is O(n log n). Therefore, the best case complexity is O(n log n).
+            Worst Case Complexity: O(n log n), where n is the number of treasures in the hollow
+                Explanation: The reasoning remains the same as in the best case. Each treasure is processed exactly once to create the list, 
+                and each insertion into the BetterBST takes logarithmic time. Consequently, even in the worst-case scenario, the overall complexity does not exceed O(n log n).
+        
         Complexity requirements for full marks:
             Best Case Complexity: O(n log n)
             Worst Case Complexity: O(n log n)
             Where n is the number of treasures in the hollow
         """
-        elements = [(treasure.value / treasure.weight, treasure) for treasure in self.treasures]
-        self.treasure_bst = BetterBST(elements)
+        elements = [(-treasure.value / treasure.weight, treasure) for treasure in self.treasures]
+        self.treasures = BetterBST(elements)
         
     def get_optimal_treasure(self, backpack_capacity: int) -> Treasure | None:
         """
@@ -110,8 +118,15 @@ class SpookyHollow(Hollow):
         Complexity:
             (This is the actual complexity of your code, 
             remember to define all variables used.)
-            Best Case Complexity: O(log (n)), Finding the maximum element: O(log n), Removing the element: O(log n)
-            Worst Case Complexity: O(log n) in the best case and O(n) in the worst case (if we need to traverse the entire tree, search method even in balanced tree also has O(n) complexity)
+            Best Case Complexity: O(log(n)), where n is the number of treasures in the hollow 
+                Explanation: In the best-case scenario, the optimal treasure is found quickly during the in-order traversal of the BetterBST. 
+                If the first treasure examined meets the weight requirement, it can be removed with a logarithmic time complexity operation in the binary search tree. 
+                Thus, the best-case complexity is O(log n).
+            Worst Case Complexity: O(n), where n is the number of treasures in the hollow 
+                Explanation: The worst case occurs when all treasures must be examined during the in-order traversal before the suitable treasure is found. 
+                This traversal requires visiting every node in the tree, leading to a linear complexity of O(n). Furthermore, if the optimal treasure is identified, 
+                deleting it from the tree involves a logarithmic operation, which does not change the overall linear complexity in this case.
+
 
         Complexity requirements for full marks:
             Best Case Complexity: O(log(n))
@@ -120,22 +135,17 @@ class SpookyHollow(Hollow):
         """
         optimal_treasure = None
 
-        # Find the maximum ratio that is less than or equal to the backpack capacity
-        current = self.treasure_bst.root
-        while current:
-            if current.item.weight <= backpack_capacity:
-                optimal_treasure = current.item
-                if current.right:
-                    current = current.right
-                else:
-                    break
-            else:
-                current = current.left
+        # Find the first treasure that meets the weight requirement
+        for node in BSTInOrderIterator(self.treasures.root):
+            current = node.item
+            if current.weight <= backpack_capacity:
+                optimal_treasure = current
+                break
 
+        # Remove the optimal treasure from the BetterBST
         if optimal_treasure:
-            del self.treasure_bst[optimal_treasure.value / optimal_treasure.weight]
-            self.treasures = [t for t in self.treasures if t != optimal_treasure]
-
+            del self.treasures[-optimal_treasure.value / optimal_treasure.weight]
+            
         return optimal_treasure
 
     def __str__(self) -> str:
@@ -161,20 +171,23 @@ class MysticalHollow(Hollow):
         Complexity:
             (This is the actual complexity of your code, 
             remember to define all variables used.)
-            Best Case Complexity: TODO
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(n), where n is the number of treasures in the hollow.
+                Explanation: In the best-case scenario, if all treasures are processed in a straightforward manner, the time complexity remains linear. 
+                The method generates a list of tuples where each tuple contains the value-to-weight ratio and the corresponding treasure. 
+                The process of creating this list takes O(n) time, where n is the number of treasures. 
+                The heapification step, where the list is converted into a heap, also operates in linear time relative to the number of elements.
+            Worst Case Complexity: O(n), where n is the number of treasures in the hollow
+                Explanation: Similarly, the worst-case complexity is also O(n) for the same reasons. 
+                The method processes each treasure once, resulting in a linear time complexity regardless of the order of treasures or their attributes.
 
         Complexity requirements for full marks:
             Best Case Complexity: O(n)
             Worst Case Complexity: O(n)
             Where n is the number of treasures in the hollow
         """
-        # self.treasure_heap = MaxHeap(len(self.treasures))
-        # for treasure in self.treasures:
-        #     ratio = treasure.value / treasure.weight
-        #     self.treasure_heap.add((ratio, treasure))
+        # Create a MaxHeap from the treasures
         elements = [(treasure.value / treasure.weight, treasure) for treasure in self.treasures]
-        self.treasure_heap = MaxHeap.heapify(elements)
+        self.treasures = MaxHeap.heapify(elements)
 
     def get_optimal_treasure(self, backpack_capacity: int) -> Treasure | None:
         """
@@ -195,34 +208,40 @@ class MysticalHollow(Hollow):
         Complexity:
             (This is the actual complexity of your code, 
             remember to define all variables used.)
-            Best Case Complexity: Uses the MaxHeap to retrieve the treasure with the highest value/weight ratio that can be carried.
-                                If no viable treasure is found, the remaining elements are restored to the heap using heapify.
-                                Updates the treasures list to remove the selected treasure.
-                                Complexity: O(log n) for the best case and O(n log n) for the worst case.
-            Worst Case Complexity: TODO
+            Best Case Complexity: O(log n), where n is the number of treasures in the hollow
+                Explanation: The best-case scenario occurs when the first treasure with highest value/weight ratio retrieved from the heap via get_max() meets the weight requirement. 
+                In this case, the method immediately identifies the optimal treasure, and only one heap operation (which is O(log n) complexity) is performed. 
+                The loop exits without further checks, making the best-case complexity O(log n).
+            
+            Worst Case Complexity: O(n log n), where n is the number of treasures in the hollow
+                Explanation: The worst-case scenario arises when none of the treasures meet the weight condition until the very last treasure is checked. 
+                In this situation, the method calls get_max() for each treasure in the heap, which has a logarithmic time complexity in max heap.
+                If n treasures are checked, the complexity sums to O(n log n). 
+                Furthermore, if all treasures are heavier than the backpack capacity stored in LinkedQueue, they must be served from LinkedQueue and reinserted into the heap, which also contributes to the O(n log n) complexity.
+                If no optimal treasure is found until the last element, the loop runs n times, resulting in O(n log n) complexity.
 
         Complexity requirements for full marks:
             Best Case Complexity: O(log n)
             Worst Case Complexity: O(n log n)
             Where n is the number of treasures in the hollow
         """
-        optimal_treasure = None
-        remaining_elements = []
 
-        while len(self.treasure_heap) > 0:
-            ratio, treasure = self.treasure_heap.get_max()
+        optimal_treasure = None
+        remaining_elements = LinkedQueue()
+
+        # Find the optimal treasure
+        while len(self.treasures) > 0:
+            ratio, treasure = self.treasures.get_max()
             if treasure.weight <= backpack_capacity:
                 optimal_treasure = treasure
                 break
             else:
                 remaining_elements.append((ratio, treasure))
 
-        # Restore the heap using heapify
-        if remaining_elements:
-            self.treasure_heap = MaxHeap.heapify(remaining_elements)
+        # Reinsert the remaining treasures served from LinkedQueue into the heap
+        while not remaining_elements.is_empty():
+            self.treasures.add(remaining_elements.serve())
 
-        if optimal_treasure:
-            self.treasures = [t for t in self.treasures if t != optimal_treasure]
         return optimal_treasure
 
     def __str__(self) -> str:
